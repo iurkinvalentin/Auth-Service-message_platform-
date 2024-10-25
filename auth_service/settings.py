@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     'accounts',
     'groups',
     'chat_messages',
+    'channels',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -149,3 +151,11 @@ SIMPLE_JWT = {
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+ASGI_APPLICATION = 'auth_service.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
