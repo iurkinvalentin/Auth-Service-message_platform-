@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/', include('accounts.urls')),
     path('api/', include('groups.urls')),
     path('api/', include('chat_messages.urls')),
+    path('api/', include('notifications.urls')),
 ]
 
 if settings.DEBUG:
