@@ -49,7 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'accounts.middleware.UpdateLastStatusMiddleware',
+    'accounts.middleware.LastActivityMiddleware',
 ]
 
 ROOT_URLCONF = 'auth_service.urls'
@@ -148,7 +148,8 @@ SIMPLE_JWT = {
 }
 
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Брокер задач на Redis
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Хранилище результатов'
 
 CORS_ALLOW_ALL_ORIGINS = True
 
@@ -158,4 +159,18 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
+}
+
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # используем базу данных Redis для сессий
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
 }

@@ -1,22 +1,17 @@
-import datetime
-from django.utils import timezone
+from .tasks import update_last_activity
 
 
-class UpdateLastStatusMiddleware:
-    """
-    Middleware для обновления last_seen и is_online пользователя при каждом запросе.
-    """
+class LastActivityMiddleware:
+    """Middleware для отслеживания активности пользователя."""
+    
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         response = self.get_response(request)
-
-        # Проверяем, авторизован ли пользователь
+        
+        # Обновляем активность пользователя, если он аутентифицирован
         if request.user.is_authenticated:
-            profile = request.user.profile
-            profile.last_seen = timezone.now()
-            profile.is_online = True  # Пользователь считается онлайн при каждом запросе
-            profile.save()
-
+            update_last_activity.delay(request.user.id)
+        
         return response

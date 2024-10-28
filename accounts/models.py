@@ -32,13 +32,14 @@ class Profile(models.Model):
         return f"{self.user.username}'s profile"
 
     def update_online_status(self):
+        now = timezone.now()
         if self.last_seen:
-            now = timezone.now()
-            if now - self.last_seen > timedelta(minutes=5):
-                self.is_online = False
-            else:
-                self.is_online = True
-            self.save()
+            # Обновление статуса, если last_seen установлен
+            self.is_online = (now - self.last_seen) < timedelta(minutes=5)
+        else:
+            # Если last_seen не установлен, статус offline
+            self.is_online = False
+        self.save()
 
 
 class Connections(models.Model):

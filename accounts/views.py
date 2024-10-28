@@ -8,6 +8,7 @@ from .serializers import (
     LoginSerializer, RegisterSerializer, ProfileUpdateSerializer, ProfileSerializer, ConnectionsSerializer
 )
 from .models import Profile, Connections, CustomUser
+from django.core.cache import cache
 
 
 class VerifyTokenView(APIView):
@@ -118,13 +119,17 @@ class ProfileDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        user_id = self.kwargs.get('pk')
-        user = self.request.user if user_id is None else CustomUser.objects.filter(id=user_id).first()
+        user_id = self.kwargs.get('pk', self.request.user.id)
+        cache_key = f"profile_{user_id}"
+        profile = cache.get(cache_key)
 
-        if not user:
-            raise serializers.ValidationError({"detail": "User not found"})
+        if not profile:
+            user = CustomUser.objects.filter(id=user_id).first()
+            if not user:
+                raise serializers.ValidationError({"detail": "User not found"})
+            profile = user.profile
+            cache.set(cache_key, profile, timeout=300)  # кэшируем на 5 минут
 
-        profile = user.profile
         profile.update_online_status()
         return profile
 
@@ -178,9 +183,16 @@ class ContactManagementView(APIView):
             return Response({"detail": "Connection not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def get(self, request, *args, **kwargs):
-        confirmed_connections = Connections.objects.filter(
-            Q(from_user=request.user) | Q(to_user=request.user),
-            is_confirmed=True
-        )
-        serializer = ConnectionsSerializer(confirmed_connections, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        user_id = request.user.id
+        cache_key = f"confirmed_contacts_{user_id}"
+        contacts = cache.get(cache_key)
+
+        if not contacts:
+            confirmed_connections = Connections.objects.filter(
+                Q(from_user=request.user) | Q(to_user=request.user),
+                is_confirmed=True
+            )
+            contacts = ConnectionsSerializer(confirmed_connections, many=True).data
+            cache.set(cache_key, contacts, timeout=300)  # кэшируем на 5 минут
+
+        return Response(contacts, status=status.HTTP_200_OK)
