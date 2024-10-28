@@ -1,10 +1,30 @@
+from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import IntegrityError, DatabaseError
 from rest_framework import viewsets, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 from .models import Chat, Message, ChatParticipant
 from .serializers import ChatSerializer, MessageSerializer, PrivateChatSerializer
 from accounts.models import CustomUser
-from rest_framework.decorators import action
+
+CACHE_TIMEOUT = 300  # 5 минут
+
+
+def handle_database_error(detail):
+    """Обработчик ошибок базы данных"""
+    return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def add_participant(chat, user_id, role='member'):
+    """Добавление участника в чат с обработкой ошибок"""
+    try:
+        user = CustomUser.objects.get(id=user_id)
+        ChatParticipant.objects.create(chat=chat, user=user, role=role)
+    except ObjectDoesNotExist:
+        return Response({"detail": f"User with ID {user_id} not found."}, status=status.HTTP_404_NOT_FOUND)
+    except IntegrityError:
+        return Response({"detail": "Error adding participant to chat."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ChatViewSet(viewsets.ModelViewSet):
@@ -12,78 +32,77 @@ class ChatViewSet(viewsets.ModelViewSet):
     serializer_class = ChatSerializer
 
     def create(self, request, *args, **kwargs):
-        """Создание нового чата и добавление участников"""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        try:
+            chat = serializer.save()
+            ChatParticipant.objects.create(chat=chat, user=request.user, role='admin')
 
-        # Сохраняем чат
-        chat = serializer.save()
+            participants = request.data.get('participants', [])
+            for user_id in participants:
+                error_response = add_participant(chat, user_id)
+                if error_response:
+                    return error_response
 
-        # Добавляем создателя как участника с ролью 'admin'
-        ChatParticipant.objects.create(chat=chat, user=request.user, role='admin')
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except DatabaseError:
+            return handle_database_error("Database error occurred while creating chat.")
 
-        # Получаем участников из запроса
-        participants = request.data.get('participants', [])
-
-        # Добавляем участников
-        for user_id in participants:
-            user = CustomUser.objects.get(id=user_id)
-            ChatParticipant.objects.create(chat=chat, user=user, role='member')
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-    
     def destroy(self, request, *args, **kwargs):
-        """Удаление чата и связанных данных"""
         chat = self.get_object()
-        # Удаляем всех участников
-        chat.participants.all().delete()
-        # Если нужно удалить сообщения (если такая модель существует)
-        chat.messages.all().delete()
-        # Удаление самого чата
-        chat.delete()
-        return Response({"detail": "Chat deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-    
+        try:
+            chat.participants.all().delete()
+            chat.messages.all().delete()
+            chat.delete()
+            cache.delete(f"chat_{chat.id}")  # Удаление чата из кэша при удалении
+            return Response({"detail": "Chat deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except DatabaseError:
+            return handle_database_error("Database error occurred while deleting chat.")
+
     @action(detail=False, methods=['get'], url_path='my-chats')
     def list_my_chats(self, request):
-        """Получение списка всех чатов, в которых состоит текущий пользователь"""
-        user = request.user
+        cache_key = f"user_chats_{request.user.id}"
+        cached_data = cache.get(cache_key)
 
-        # Фильтруем чаты, в которых участвует текущий пользователь
-        chats = Chat.objects.filter(participants__user=user).distinct()
+        if cached_data:
+            return Response(cached_data, status=status.HTTP_200_OK)
 
-        serializer = self.get_serializer(chats, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            chats = Chat.objects.filter(participants__user=request.user).distinct()
+            serializer = self.get_serializer(chats, many=True)
+            cache.set(cache_key, serializer.data, timeout=CACHE_TIMEOUT)  # Кэшируем результат
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except DatabaseError:
+            return handle_database_error("Database error occurred while fetching chats.")
 
     @action(detail=True, methods=['post'], url_path='remove-participant')
     def remove_participant(self, request, pk=None):
-        """Удаление участника из группового чата только создателем"""
         chat = self.get_object()
-
-        # Проверка, что текущий пользователь является создателем (админом)
         creator_participant = ChatParticipant.objects.filter(chat=chat, user=request.user, role='admin').first()
-        if not creator_participant:
-            return Response({"detail": "У вас нет прав удалять участников из этого чата"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Получаем ID пользователя для удаления
+        if not creator_participant:
+            return Response({"detail": "You do not have permission to remove participants from this chat."}, status=status.HTTP_403_FORBIDDEN)
+
         user_id = request.data.get('user_id')
         if not user_id:
-            return Response({"detail": "Необходимо указать ID пользователя"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "User ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Ищем участника в чате
-        participant = ChatParticipant.objects.filter(chat=chat, user__id=user_id).first()
-        if not participant:
-            return Response({"detail": "Пользователь не найден в этом чате"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            participant = ChatParticipant.objects.get(chat=chat, user__id=user_id)
+            participant.delete()
+            cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша участников чата
+            return Response({"detail": "Participant successfully removed from chat."}, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist:
+            return Response({"detail": "Participant not found in this chat."}, status=status.HTTP_404_NOT_FOUND)
+        except DatabaseError:
+            return handle_database_error("Database error occurred while removing participant.")
 
-        # Удаляем участника
-        participant.delete()
 
-        return Response({"detail": "Участник успешно удалён из чата"}, status=status.HTTP_200_OK)
-    
 
 class PrivateChatViewSet(viewsets.ModelViewSet):
-    queryset = Chat.objects.filter(group=None)  # Личные чаты не связаны с группами
+    queryset = Chat.objects.filter(group=None)
     serializer_class = PrivateChatSerializer
 
     def create(self, request, *args, **kwargs):
@@ -91,19 +110,16 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Получаем участников из запроса
         participants = request.data.get('participants')
-    
-        # Создаем новый чат
-        chat = Chat.objects.create()
-
-        # Добавляем участников с ролью 'admin'
-        for user_id in participants:
-            user = CustomUser.objects.get(id=user_id)
-            ChatParticipant.objects.create(chat=chat, user=user, role='admin')
-
-        return Response(ChatSerializer(chat).data, status=status.HTTP_201_CREATED)
-
+        try:
+            chat = Chat.objects.create()
+            for user_id in participants:
+                error_response = add_participant(chat, user_id, role='admin')
+                if error_response:
+                    return error_response
+            return Response(ChatSerializer(chat).data, status=status.HTTP_201_CREATED)
+        except DatabaseError:
+            return handle_database_error("Database error occurred while creating private chat.")
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -112,4 +128,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Указываем отправителя при создании сообщения"""
-        serializer.save(sender=self.request.user)
+        try:
+            serializer.save(sender=self.request.user)
+        except DatabaseError:
+            return handle_database_error("Database error occurred while saving message.")
