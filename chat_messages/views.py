@@ -21,6 +21,8 @@ def add_participant(chat, user_id, role='member'):
     try:
         user = CustomUser.objects.get(id=user_id)
         ChatParticipant.objects.create(chat=chat, user=user, role=role)
+        cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша участников при добавлении нового
+        return None
     except ObjectDoesNotExist:
         return Response({"detail": f"User with ID {user_id} not found."}, status=status.HTTP_404_NOT_FOUND)
     except IntegrityError:
@@ -30,6 +32,26 @@ def add_participant(chat, user_id, role='member'):
 class ChatViewSet(viewsets.ModelViewSet):
     queryset = Chat.objects.all()
     serializer_class = ChatSerializer
+
+    @action(detail=True, methods=['post'], url_path='add-participant')
+    def add_participant(self, request, pk=None):
+        """Добавление пользователя в групповой чат администратором"""
+        chat = self.get_object()
+
+        # Проверка, что текущий пользователь является администратором
+        if not ChatParticipant.objects.filter(chat=chat, user=request.user, role='admin').exists():
+            return Response({"detail": "You do not have permission to add participants to this chat."}, status=status.HTTP_403_FORBIDDEN)
+
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({"detail": "User ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Добавление участника в чат
+        error_response = add_participant(chat, user_id)
+        if error_response:
+            return error_response
+
+        return Response({"detail": "Participant successfully added to chat."}, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
