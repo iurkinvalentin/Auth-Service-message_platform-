@@ -33,26 +33,6 @@ class ChatViewSet(viewsets.ModelViewSet):
     queryset = Chat.objects.all()
     serializer_class = ChatSerializer
 
-    @action(detail=True, methods=['post'], url_path='add-participant')
-    def add_participant(self, request, pk=None):
-        """Добавление пользователя в групповой чат администратором"""
-        chat = self.get_object()
-
-        # Проверка, что текущий пользователь является администратором
-        if not ChatParticipant.objects.filter(chat=chat, user=request.user, role='admin').exists():
-            return Response({"detail": "You do not have permission to add participants to this chat."}, status=status.HTTP_403_FORBIDDEN)
-
-        user_id = request.data.get('user_id')
-        if not user_id:
-            return Response({"detail": "User ID is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Добавление участника в чат
-        error_response = add_participant(chat, user_id)
-        if error_response:
-            return error_response
-
-        return Response({"detail": "Participant successfully added to chat."}, status=status.HTTP_200_OK)
-
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -99,8 +79,29 @@ class ChatViewSet(viewsets.ModelViewSet):
         except DatabaseError:
             return handle_database_error("Database error occurred while fetching chats.")
 
+    @action(detail=True, methods=['post'], url_path='add-participant')
+    def add_participant(self, request, pk=None):
+        """Добавление пользователя в групповой чат администратором"""
+        chat = self.get_object()
+
+        # Проверка, что текущий пользователь является администратором
+        if not ChatParticipant.objects.filter(chat=chat, user=request.user, role='admin').exists():
+            return Response({"detail": "You do not have permission to add participants to this chat."}, status=status.HTTP_403_FORBIDDEN)
+
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({"detail": "User ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Добавление участника в чат
+        error_response = add_participant(chat, user_id)
+        if error_response:
+            return error_response
+
+        return Response({"detail": "Participant successfully added to chat."}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=['post'], url_path='remove-participant')
     def remove_participant(self, request, pk=None):
+        """Удаление пользователя в групповой чат администратором"""
         chat = self.get_object()
         creator_participant = ChatParticipant.objects.filter(chat=chat, user=request.user, role='admin').first()
 
