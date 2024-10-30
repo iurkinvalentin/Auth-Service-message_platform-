@@ -16,6 +16,14 @@ def handle_database_error(detail):
     return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+def update_chat_cache(chat):
+    """Обновление кэша участников для конкретного чата"""
+    cache_key = f"chat_participants_{chat.id}"
+    updated_participants = list(ChatParticipant.objects.filter(chat=chat).values("user__username", "role"))
+    cache.set(cache_key, updated_participants, timeout=CACHE_TIMEOUT)
+    print("Кэш обновлен с новыми данными:", cache.get(cache_key))
+
+
 def add_participant(chat, user_id, role='member'):
     """Добавление участника в чат с обработкой ошибок"""
     try:
@@ -93,15 +101,20 @@ class ChatViewSet(viewsets.ModelViewSet):
             return Response({"detail": "User ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Добавление участника в чат
-        error_response = add_participant(chat, user_id)
-        if error_response:
-            return error_response
-
-        return Response({"detail": "Participant successfully added to chat."}, status=status.HTTP_200_OK)
+        try:
+            user = CustomUser.objects.get(id=user_id)
+            ChatParticipant.objects.create(chat=chat, user=user, role='member')
+            cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша перед обновлением
+            update_chat_cache(chat)  # Обновление кэша с новыми данными
+            return Response({"detail": "Participant successfully added to chat."}, status=status.HTTP_200_OK)
+        except CustomUser.DoesNotExist:
+            return Response({"detail": f"User with ID {user_id} not found."}, status=status.HTTP_404_NOT_FOUND)
+        except DatabaseError:
+            return Response({"detail": "Database error occurred while adding participant."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='remove-participant')
     def remove_participant(self, request, pk=None):
-        """Удаление пользователя в групповой чат администратором"""
+        """Удаление пользователя из группового чата администратором"""
         chat = self.get_object()
         creator_participant = ChatParticipant.objects.filter(chat=chat, user=request.user, role='admin').first()
 
@@ -112,15 +125,17 @@ class ChatViewSet(viewsets.ModelViewSet):
         if not user_id:
             return Response({"detail": "User ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Удаление участника из чата
         try:
             participant = ChatParticipant.objects.get(chat=chat, user__id=user_id)
             participant.delete()
-            cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша участников чата
+            cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша перед обновлением
+            update_chat_cache(chat)  # Обновление кэша с новыми данными
             return Response({"detail": "Participant successfully removed from chat."}, status=status.HTTP_200_OK)
-        except ObjectDoesNotExist:
+        except ChatParticipant.DoesNotExist:
             return Response({"detail": "Participant not found in this chat."}, status=status.HTTP_404_NOT_FOUND)
         except DatabaseError:
-            return handle_database_error("Database error occurred while removing participant.")
+            return Response({"detail": "Database error occurred while removing participant."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
