@@ -7,12 +7,11 @@ from .models import GroupChat, Message, ChatParticipant, PrivateChat
 from .serializers import GroupChatSerializer, MessageSerializer, PrivateChatSerializer
 from accounts.models import CustomUser
 
-CACHE_TIMEOUT = 250  # 5 минут
+CACHE_TIMEOUT = 30 
 
 def handle_database_error(detail):
     """Обработчик ошибок базы данных"""
     return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 def update_chat_cache(chat):
     """Обновление кэша участников для конкретного чата"""
@@ -20,7 +19,6 @@ def update_chat_cache(chat):
     updated_participants = list(ChatParticipant.objects.filter(chat=chat).values("user__username", "role"))
     cache.set(cache_key, updated_participants, timeout=CACHE_TIMEOUT)
     print("Кэш обновлен с новыми данными:", cache.get(cache_key))
-
 
 def add_participant(chat, user_id, role='member'):
     """Добавление участника в чат с проверкой на существование и инвалидацией кэша"""
@@ -32,13 +30,12 @@ def add_participant(chat, user_id, role='member'):
         ChatParticipant.objects.create(chat=chat, user=user, role=role)
         cache.delete(f"user_chats_{user_id}")  # Инвалидация кэша списка чатов пользователя
         cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша участников чата
-        update_chat_cache(chat)  # Обновление кэша чата
+        update_chat_cache(chat)  # Обновление кэша чата после изменений
         return None
     except CustomUser.DoesNotExist:
         return Response({"detail": f"User with ID {user_id} not found."}, status=status.HTTP_404_NOT_FOUND)
     except IntegrityError:
         return Response({"detail": "Error adding participant to chat."}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class GroupChatViewSet(viewsets.ModelViewSet):
     queryset = GroupChat.objects.all()
@@ -49,11 +46,9 @@ class GroupChatViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Получаем участников, включая создателя
         participants = request.data.get('participants', [])
         participants_ids = set(participants + [request.user.id])
 
-        # Проверка на существование чата с аналогичными участниками
         existing_chats = GroupChat.objects.filter(
             participants__user_id__in=participants_ids
         ).distinct()
@@ -67,11 +62,9 @@ class GroupChatViewSet(viewsets.ModelViewSet):
                 )
 
         try:
-            # Создаем новый чат
             chat = serializer.save()
             ChatParticipant.objects.create(chat=chat, user=request.user, role='admin')
 
-            # Добавляем участников
             for user_id in participants:
                 error_response = add_participant(chat, user_id)
                 if error_response:
@@ -92,13 +85,12 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             chat.delete()
 
             for user_id in participant_ids:
-                cache.delete(f"user_chats_{user_id}")
+                cache.delete(f"user_chats_{user_id}")  # Инвалидация кэша списка чатов пользователя при удалении чата
 
-            cache.delete(f"chat_{chat.id}")
-            cache.delete(f"chat_participants_{chat.id}") # Удаление чата из кэша при удалении
+            cache.delete(f"chat_{chat.id}")  # Инвалидация кэша самого чата
+            cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша участников чата при удалении чата
             return Response({"detail": "Chat deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except DatabaseError as e:
-            # Обработка исключения базы данных с подробным сообщением об ошибке
             return handle_database_error(f"Database error occurred while deleting chat: {str(e)}")
 
     @action(detail=False, methods=['get'], url_path='my-all-chats')
@@ -112,23 +104,19 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             return Response(cached_data, status=status.HTTP_200_OK)
 
         try:
-            # Получаем групповые чаты, в которых пользователь является участником
             group_chats = GroupChat.objects.filter(participants__user=user).distinct()
             group_chats_data = GroupChatSerializer(group_chats, many=True).data
 
-            # Получаем приватные чаты, где пользователь является одним из участников
             private_chats = PrivateChat.objects.filter(user1=user) | PrivateChat.objects.filter(user2=user)
             private_chats = private_chats.distinct()
             private_chats_data = PrivateChatSerializer(private_chats, many=True).data
 
-            # Комбинируем данные обоих типов чатов
             all_chats_data = {
                 "group_chats": group_chats_data,
                 "private_chats": private_chats_data
             }
 
-            # Кэшируем результат
-            cache.set(cache_key, all_chats_data, timeout=CACHE_TIMEOUT)
+
             return Response(all_chats_data, status=status.HTTP_200_OK)
         except DatabaseError:
             return handle_database_error("Database error occurred while fetching user chats.")
@@ -161,15 +149,14 @@ class GroupChatViewSet(viewsets.ModelViewSet):
         try:
             participant = ChatParticipant.objects.get(chat=chat, user__id=user_id)
             participant.delete()
-            cache.delete(f"user_chats_{user_id}")
-            cache.delete(f"chat_participants_{chat.id}")
-            update_chat_cache(chat)
+            cache.delete(f"user_chats_{user_id}")  # Инвалидация кэша списка чатов пользователя при удалении участника
+            cache.delete(f"chat_participants_{chat.id}")  # Инвалидация кэша участников чата при удалении участника
+            update_chat_cache(chat)  # Обновление кэша чата
             return Response({"detail": "Participant successfully removed from chat."}, status=status.HTTP_200_OK)
         except ChatParticipant.DoesNotExist:
             return Response({"detail": "Participant not found in this chat."}, status=status.HTTP_404_NOT_FOUND)
         except DatabaseError:
             return handle_database_error("Database error occurred while removing participant.")
-
 
 class PrivateChatViewSet(viewsets.ModelViewSet):
     queryset = PrivateChat.objects.all()
@@ -183,14 +170,12 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
         user1 = serializer.validated_data['user1']
         user2 = serializer.validated_data['user2']
 
-        # Проверка на существование приватного чата между user1 и user2 в любом порядке
         if PrivateChat.objects.filter(user1=user1, user2=user2).exists() or PrivateChat.objects.filter(user1=user2, user2=user1).exists():
             return Response(
                 {"detail": "A private chat between these participants already exists."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Создание нового приватного чата, если он не существует
         try:
             chat = PrivateChat.objects.create(user1=user1, user2=user2)
             return Response(PrivateChatSerializer(chat).data, status=status.HTTP_201_CREATED)
@@ -201,20 +186,16 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
         """Удаление приватного чата вместе с его сообщениями и принудительная инвалидация кэша участников"""
         chat = self.get_object()
         try:
-            # Удаляем все сообщения, связанные с этим приватным чатом
-            chat.messages.all().delete()
-            # Удаляем сам приватный чат
-            chat.delete()
+            chat.messages.all().delete()  # Удаление всех сообщений
+            chat.delete()  # Удаление самого приватного чата
 
             # Инвалидация кэша для всех участников чата
-            cache.delete(f"user_chats_{chat.user1.id}")
-            cache.delete(f"user_chats_{chat.user2.id}")
-            cache.delete(f"chat_{chat.id}")  # Удаление кэша чата по его ID
-
+            cache.delete(f"user_chats_{chat.user1.id}")  # Инвалидация кэша списка чатов первого участника
+            cache.delete(f"user_chats_{chat.user2.id}")  # Инвалидация кэша списка чатов второго участника
+            cache.delete(f"chat_{chat.id}")  # Инвалидация кэша самого чата
             return Response({"detail": "Private chat deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
         except DatabaseError:
             return handle_database_error("Database error occurred while deleting private chat.")
-
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
@@ -239,5 +220,3 @@ class MessageViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError("Private chat does not exist.")
         else:
             raise serializers.ValidationError("Invalid chat type.")
-
-

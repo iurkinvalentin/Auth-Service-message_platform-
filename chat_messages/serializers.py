@@ -1,11 +1,11 @@
 from rest_framework import serializers
 from .models import GroupChat, Message, ChatParticipant, PrivateChat
 from accounts.models import CustomUser
+from asgiref.sync import sync_to_async
 
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.ReadOnlyField(source='sender.username')
-
     chat_type = serializers.ChoiceField(choices=[('group', 'Group Chat'), ('private', 'Private Chat')], write_only=True)
     chat_id = serializers.IntegerField(write_only=True)
 
@@ -14,20 +14,22 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = ['id', 'content', 'sender', 'created_at', 'chat_type', 'chat_id', 'group_chat', 'private_chat']
         read_only_fields = ['group_chat', 'private_chat']
 
-    def validate(self, attrs):
+    async def validate(self, attrs):
         chat_type = attrs.get('chat_type')
         chat_id = attrs.get('chat_id')
         
         if chat_type == 'group':
             try:
-                attrs['group_chat'] = GroupChat.objects.get(id=chat_id)
+                # Обернули доступ к базе данных в sync_to_async
+                attrs['group_chat'] = await sync_to_async(GroupChat.objects.get)(id=chat_id)
                 attrs['private_chat'] = None  # Убедитесь, что поле private_chat пустое
             except GroupChat.DoesNotExist:
                 raise serializers.ValidationError("Group chat does not exist.")
         
         elif chat_type == 'private':
             try:
-                attrs['private_chat'] = PrivateChat.objects.get(id=chat_id)
+                # Обернули доступ к базе данных в sync_to_async
+                attrs['private_chat'] = await sync_to_async(PrivateChat.objects.get)(id=chat_id)
                 attrs['group_chat'] = None  # Убедитесь, что поле group_chat пустое
             except PrivateChat.DoesNotExist:
                 raise serializers.ValidationError("Private chat does not exist.")
@@ -37,13 +39,13 @@ class MessageSerializer(serializers.ModelSerializer):
         
         return attrs
 
-    def create(self, validated_data):
+    async def create(self, validated_data):
         # Удаляем временные поля 'chat_type' и 'chat_id' перед сохранением
         validated_data.pop('chat_type')
         validated_data.pop('chat_id')
         
         # Создаем сообщение с правильной связью (либо group_chat, либо private_chat)
-        return Message.objects.create(**validated_data)
+        return await sync_to_async(Message.objects.create)(**validated_data)
 
 
 class ChatParticipantSerializer(serializers.ModelSerializer):
@@ -51,7 +53,7 @@ class ChatParticipantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ChatParticipant
-        fields = ['user', 'role']  # Включаем роль участника
+        fields = ['id', 'user', 'role']  # Включаем роль участника
 
 
 class GroupChatSerializer(serializers.ModelSerializer):
