@@ -1,6 +1,7 @@
-from rest_framework.routers import DefaultRouter
-from groups.views import GroupViewSet, InvitationViewSet
 from django.urls import path
+from rest_framework.routers import DefaultRouter
+
+from groups.views import GroupViewSet, InvitationViewSet
 
 router = DefaultRouter()
 router.register(r'groups', GroupViewSet, basename='group')

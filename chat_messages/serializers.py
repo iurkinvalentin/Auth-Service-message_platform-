@@ -1,7 +1,9 @@
-from rest_framework import serializers
-from .models import GroupChat, Message, ChatParticipant, PrivateChat
-from accounts.models import CustomUser
 from asgiref.sync import sync_to_async
+from rest_framework import serializers
+
+from accounts.models import CustomUser
+
+from .models import ChatParticipant, GroupChat, Message, PrivateChat
 
 
 class MessageSerializer(serializers.ModelSerializer):

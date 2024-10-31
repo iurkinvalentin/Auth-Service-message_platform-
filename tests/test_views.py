@@ -1,7 +1,9 @@
 import pytest
-from rest_framework.test import APIClient
 from django.urls import reverse
+from rest_framework.test import APIClient
+
 from accounts.models import CustomUser
+
 
 @pytest.mark.django_db
 def test_register_user():

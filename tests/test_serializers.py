@@ -1,4 +1,5 @@
 import pytest
+
 from accounts.serializers import RegisterSerializer
 
 

@@ -1,7 +1,9 @@
 # notifications/utils.py
-from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 from .models import Notification
+
 
 def send_notification(user, message):
     # Сохраняем уведомление в базе данных

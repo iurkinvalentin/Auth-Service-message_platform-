@@ -1,11 +1,14 @@
 import json
 import logging
+
+from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+
 from .models import GroupChat, Message
 from .serializers import MessageSerializer
-from asgiref.sync import sync_to_async
 
 logger = logging.getLogger(__name__)
+
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):

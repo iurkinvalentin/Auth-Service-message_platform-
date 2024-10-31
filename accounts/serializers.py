@@ -1,9 +1,10 @@
-from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import CustomUser, Profile, Connections
 from django.core.validators import RegexValidator
 from django.db import IntegrityError
+from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from .models import Connections, CustomUser, Profile
 
 
 class LoginSerializer(serializers.Serializer):

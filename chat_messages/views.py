@@ -1,11 +1,14 @@
 from django.core.cache import cache
-from django.db import IntegrityError, DatabaseError
-from rest_framework import viewsets, status, serializers
-from rest_framework.response import Response
+from django.db import DatabaseError, IntegrityError
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
-from .models import GroupChat, Message, ChatParticipant, PrivateChat
-from .serializers import GroupChatSerializer, MessageSerializer, PrivateChatSerializer
+from rest_framework.response import Response
+
 from accounts.models import CustomUser
+
+from .models import ChatParticipant, GroupChat, Message, PrivateChat
+from .serializers import (GroupChatSerializer, MessageSerializer,
+                          PrivateChatSerializer)
 
 CACHE_TIMEOUT = 30 
 

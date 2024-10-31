@@ -1,7 +1,9 @@
 import jwt
-from django.conf import settings
 from channels.db import database_sync_to_async
+from django.conf import settings
+
 from accounts.models import CustomUser
+
 
 @database_sync_to_async
 def get_user_from_token(token):

@@ -1,17 +1,18 @@
-from rest_framework import permissions, status, generics, serializers
+from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
+from django.db import DatabaseError, IntegrityError
+from django.db.models import Q
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from rest_framework import generics, permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from django.db import IntegrityError, DatabaseError
-from django.db.models import Q
-from .serializers import (
-    LoginSerializer, RegisterSerializer, ProfileUpdateSerializer, ProfileSerializer, ConnectionsSerializer
-)
-from .models import Profile, Connections, CustomUser
-from django.core.cache import cache
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
-from django.contrib.auth.tokens import default_token_generator
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+
+from .models import Connections, CustomUser, Profile
+from .serializers import (ConnectionsSerializer, LoginSerializer,
+                          ProfileSerializer, ProfileUpdateSerializer,
+                          RegisterSerializer)
 
 
 class VerifyTokenView(APIView):

@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from groups.models import Group, GroupMembership, GroupInvitation
+
+from groups.models import Group, GroupInvitation, GroupMembership
 
 
 class GroupSerializer(serializers.ModelSerializer):
