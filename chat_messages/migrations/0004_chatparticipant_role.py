@@ -6,13 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('chat_messages', '0003_alter_chatparticipant_chat'),
+        ("chat_messages", "0003_alter_chatparticipant_chat"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='chatparticipant',
-            name='role',
-            field=models.CharField(choices=[('admin', 'Admin'), ('member', 'Member')], default='member', max_length=10),
+            model_name="chatparticipant",
+            name="role",
+            field=models.CharField(
+                choices=[("admin", "Admin"), ("member", "Member")],
+                default="member",
+                max_length=10,
+            ),
         ),
     ]

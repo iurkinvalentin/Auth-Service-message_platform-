@@ -22,6 +22,7 @@ def clear_profile_cache(sender, instance, **kwargs):
     cache_key = f"profile_{instance.user.id}"
     cache.delete(cache_key)
 
+
 # Очистка кэша после удаления профиля
 @receiver(post_delete, sender=Profile)
 def clear_deleted_profile_cache(sender, instance, **kwargs):

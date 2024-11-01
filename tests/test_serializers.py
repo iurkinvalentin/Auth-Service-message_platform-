@@ -10,7 +10,7 @@ def test_valid_registration_serializer():
         "email": "testuser@example.com",
         "password": "password123",
         "first_name": "Test",
-        "last_name": "User"
+        "last_name": "User",
     }
     serializer = RegisterSerializer(data=data)
     assert serializer.is_valid()

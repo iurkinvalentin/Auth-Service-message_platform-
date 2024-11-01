@@ -1,0 +1,4 @@
+[tool.black]
+line-length = 79  # Максимальная длина строки
+target-version = ['py39']  # Целевая версия Python, можно изменить на вашу версию
+include = '\.pyi?$'

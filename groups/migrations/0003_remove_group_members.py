@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('groups', '0002_groupinvitation_groupmembership'),
+        ("groups", "0002_groupinvitation_groupmembership"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='group',
-            name='members',
+            model_name="group",
+            name="members",
         ),
     ]

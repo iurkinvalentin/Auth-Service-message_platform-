@@ -28,5 +28,5 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         pass  # WebSocket не получает данные от клиента, только отправляет
 
     async def send_notification(self, event):
-        notification = event['message']
-        await self.send(text_data=json.dumps({'message': notification}))
+        notification = event["message"]
+        await self.send(text_data=json.dumps({"message": notification}))

@@ -7,13 +7,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('chat_messages', '0001_initial'),
+        ("chat_messages", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='chatparticipant',
-            name='chat',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='participants', to='chat_messages.chat'),
+            model_name="chatparticipant",
+            name="chat",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="participants",
+                to="chat_messages.chat",
+            ),
         ),
     ]

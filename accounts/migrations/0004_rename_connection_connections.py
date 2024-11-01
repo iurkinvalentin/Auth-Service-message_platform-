@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0003_alter_connection_unique_together_and_more'),
+        ("accounts", "0003_alter_connection_unique_together_and_more"),
     ]
 
     operations = [
         migrations.RenameModel(
-            old_name='Connection',
-            new_name='Connections',
+            old_name="Connection",
+            new_name="Connections",
         ),
     ]

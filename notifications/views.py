@@ -11,7 +11,9 @@ class NotificationViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        notifications = Notification.objects.filter(user=request.user, is_read=False)
+        notifications = Notification.objects.filter(
+            user=request.user, is_read=False
+        )
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data)
 

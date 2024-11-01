@@ -6,16 +6,21 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0002_remove_customuser_bio_alter_customuser_email_and_more'),
+        (
+            "accounts",
+            "0002_remove_customuser_bio_alter_customuser_email_and_more",
+        ),
     ]
 
     operations = [
         migrations.AlterUniqueTogether(
-            name='connection',
+            name="connection",
             unique_together=set(),
         ),
         migrations.AddConstraint(
-            model_name='connection',
-            constraint=models.UniqueConstraint(fields=('from_user', 'to_user'), name='unique_connection'),
+            model_name="connection",
+            constraint=models.UniqueConstraint(
+                fields=("from_user", "to_user"), name="unique_connection"
+            ),
         ),
     ]
