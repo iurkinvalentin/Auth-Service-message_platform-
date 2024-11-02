@@ -7,11 +7,8 @@ from rest_framework.response import Response
 from accounts.models import CustomUser
 
 from .models import ChatParticipant, GroupChat, Message, PrivateChat
-from .serializers import (
-    GroupChatSerializer,
-    MessageSerializer,
-    PrivateChatSerializer,
-)
+from .serializers import (GroupChatSerializer, MessageSerializer,
+                          PrivateChatSerializer)
 
 CACHE_TIMEOUT = 30
 
@@ -88,9 +85,7 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             )
             if chat_participant_ids == participants_ids:
                 return Response(
-                    {
-                        "detail": "Чат с такими участниками уже существует"
-                    },
+                    {"detail": "Чат с такими участниками уже существует"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -128,14 +123,10 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             chat.delete()
 
             for user_id in participant_ids:
-                cache.delete(
-                    f"user_chats_{user_id}"
-                )
+                cache.delete(f"user_chats_{user_id}")
 
             cache.delete(f"chat_{chat.id}")
-            cache.delete(
-                f"chat_participants_{chat.id}"
-            )
+            cache.delete(f"chat_participants_{chat.id}")
             return Response(
                 {"detail": "Chat deleted successfully"},
                 status=status.HTTP_204_NO_CONTENT,
@@ -188,9 +179,7 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             chat=chat, user=request.user, role="admin"
         ).exists():
             return Response(
-                {
-                    "detail": "У вас нет прав добавлять учасника в чат."
-                },
+                {"detail": "У вас нет прав добавлять учасника в чат."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -219,9 +208,7 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             chat=chat, user=request.user, role="admin"
         ).exists():
             return Response(
-                {
-                    "detail": "У вас нет прав удалять участника из чата."
-                },
+                {"detail": "У вас нет прав удалять участника из чата."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -237,12 +224,8 @@ class GroupChatViewSet(viewsets.ModelViewSet):
                 chat=chat, user__id=user_id
             )
             participant.delete()
-            cache.delete(
-                f"user_chats_{user_id}"
-            )
-            cache.delete(
-                f"chat_participants_{chat.id}"
-            )
+            cache.delete(f"user_chats_{user_id}")
+            cache.delete(f"chat_participants_{chat.id}")
             update_chat_cache(chat)
             return Response(
                 {"detail": "Participant successfully removed from chat."},
@@ -258,16 +241,23 @@ class GroupChatViewSet(viewsets.ModelViewSet):
                 "Database error occurred while removing participant."
             )
 
-    @action(detail=True, methods=['get'], url_path='messages')
+    @action(detail=True, methods=["get"], url_path="messages")
     def messages(self, request, pk=None):
         """Получить историю сообщений для группового чата"""
         chat = self.get_object()
 
         # Проверка, что пользователь является участником чата
-        if not ChatParticipant.objects.filter(chat=chat, user=request.user).exists():
-            return Response({"detail": "You are not a participant of this chat."}, status=status.HTTP_403_FORBIDDEN)
+        if not ChatParticipant.objects.filter(
+            chat=chat, user=request.user
+        ).exists():
+            return Response(
+                {"detail": "You are not a participant of this chat."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-        messages = Message.objects.filter(group_chat=chat).order_by('created_at')
+        messages = Message.objects.filter(group_chat=chat).order_by(
+            "created_at"
+        )
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -289,9 +279,7 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
             or PrivateChat.objects.filter(user1=user2, user2=user1).exists()
         ):
             return Response(
-                {
-                    "detail": "Чат между участниками уже существует."
-                },
+                {"detail": "Чат между участниками уже существует."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -303,9 +291,7 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
             )
         except DatabaseError:
             return Response(
-                {
-                    "detail": "Ошибка быза данных."
-                },
+                {"detail": "Ошибка быза данных."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -333,16 +319,21 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
                 "Database error occurred while deleting private chat."
             )
 
-    @action(detail=True, methods=['get'], url_path='messages')
+    @action(detail=True, methods=["get"], url_path="messages")
     def messages(self, request, pk=None):
         """Получить историю сообщений для приватного чата"""
         chat = self.get_object()
 
         # Проверка, что пользователь является участником чата
         if chat.user1 != request.user and chat.user2 != request.user:
-            return Response({"detail": "You are not a participant of this chat."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "You are not a participant of this chat."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-        messages = Message.objects.filter(private_chat=chat).order_by('created_at')
+        messages = Message.objects.filter(private_chat=chat).order_by(
+            "created_at"
+        )
         serializer = MessageSerializer(messages, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

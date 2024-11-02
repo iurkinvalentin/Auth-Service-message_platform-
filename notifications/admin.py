@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from .models import Notification
 
 
@@ -9,7 +10,10 @@ class NotificationAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
 
     def message_preview(self, obj):
-        return obj.message[:30] + "..." if len(obj.message) > 30 else obj.message
+        return (
+            obj.message[:30] + "..." if len(obj.message) > 30 else obj.message
+        )
+
     message_preview.short_description = "Message Preview"
 
     @admin.action(description="Mark selected notifications as read")

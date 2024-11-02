@@ -37,9 +37,7 @@ class MessageSerializer(serializers.ModelSerializer):
                 attrs["group_chat"] = await sync_to_async(
                     GroupChat.objects.get
                 )(id=chat_id)
-                attrs["private_chat"] = (
-                    None
-                )
+                attrs["private_chat"] = None
             except GroupChat.DoesNotExist:
                 raise serializers.ValidationError("Group chat does not exist.")
 
@@ -48,9 +46,7 @@ class MessageSerializer(serializers.ModelSerializer):
                 attrs["private_chat"] = await sync_to_async(
                     PrivateChat.objects.get
                 )(id=chat_id)
-                attrs["group_chat"] = (
-                    None
-                )
+                attrs["group_chat"] = None
             except PrivateChat.DoesNotExist:
                 raise serializers.ValidationError(
                     "Private chat does not exist."
@@ -69,9 +65,7 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class ChatParticipantSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(
-        source="user.username"
-    )
+    user = serializers.CharField(source="user.username")
 
     class Meta:
         model = ChatParticipant

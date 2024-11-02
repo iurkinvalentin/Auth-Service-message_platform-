@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import GroupChat, PrivateChat, Message, ChatParticipant
+
+from .models import ChatParticipant, GroupChat, Message, PrivateChat
 
 
 class GroupChatAdmin(admin.ModelAdmin):
@@ -10,6 +11,7 @@ class GroupChatAdmin(admin.ModelAdmin):
 
     def get_participant_count(self, obj):
         return obj.participants.count()
+
     get_participant_count.short_description = "Participant Count"
 
 
@@ -30,6 +32,7 @@ class MessageAdmin(admin.ModelAdmin):
 
     def chat_type(self, obj):
         return "Group" if obj.group_chat else "Private"
+
     chat_type.short_description = "Chat Type"
 
 

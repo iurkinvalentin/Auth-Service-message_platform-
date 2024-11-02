@@ -58,9 +58,7 @@ class Connections(models.Model):
         related_name="incoming_connections",
         on_delete=models.CASCADE,
     )
-    is_confirmed = models.BooleanField(
-        default=False
-    )
+    is_confirmed = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

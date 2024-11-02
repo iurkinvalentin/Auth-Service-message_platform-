@@ -10,13 +10,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from .models import Connections, CustomUser, Profile
-from .serializers import (
-    ConnectionsSerializer,
-    LoginSerializer,
-    ProfileSerializer,
-    ProfileUpdateSerializer,
-    RegisterSerializer,
-)
+from .serializers import (ConnectionsSerializer, LoginSerializer,
+                          ProfileSerializer, ProfileUpdateSerializer,
+                          RegisterSerializer)
 
 
 class VerifyTokenView(APIView):
