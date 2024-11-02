@@ -258,6 +258,19 @@ class GroupChatViewSet(viewsets.ModelViewSet):
                 "Database error occurred while removing participant."
             )
 
+    @action(detail=True, methods=['get'], url_path='messages')
+    def messages(self, request, pk=None):
+        """Получить историю сообщений для группового чата"""
+        chat = self.get_object()
+
+        # Проверка, что пользователь является участником чата
+        if not ChatParticipant.objects.filter(chat=chat, user=request.user).exists():
+            return Response({"detail": "You are not a participant of this chat."}, status=status.HTTP_403_FORBIDDEN)
+
+        messages = Message.objects.filter(group_chat=chat).order_by('created_at')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class PrivateChatViewSet(viewsets.ModelViewSet):
     queryset = PrivateChat.objects.all()
@@ -319,6 +332,19 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
             return handle_database_error(
                 "Database error occurred while deleting private chat."
             )
+
+    @action(detail=True, methods=['get'], url_path='messages')
+    def messages(self, request, pk=None):
+        """Получить историю сообщений для приватного чата"""
+        chat = self.get_object()
+
+        # Проверка, что пользователь является участником чата
+        if chat.user1 != request.user and chat.user2 != request.user:
+            return Response({"detail": "You are not a participant of this chat."}, status=status.HTTP_403_FORBIDDEN)
+
+        messages = Message.objects.filter(private_chat=chat).order_by('created_at')
+        serializer = MessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class MessageViewSet(viewsets.ModelViewSet):
