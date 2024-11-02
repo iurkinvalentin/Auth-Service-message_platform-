@@ -48,6 +48,7 @@ class CustomUserAdmin(BaseUserAdmin):
 class ProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user",
+        "user_email",  # Показ email для удобства
         "bio",
         "birthday",
         "status_message",
@@ -56,12 +57,23 @@ class ProfileAdmin(admin.ModelAdmin):
     )
     search_fields = ("user__username", "user__email", "status_message")
     list_filter = ("is_online",)
+    ordering = ("user__username",)
+    list_select_related = ("user",)  # Оптимизация запросов
+
+    def user_email(self, obj):
+        return obj.user.email
+    user_email.short_description = "User Email"
 
 
 class ConnectionsAdmin(admin.ModelAdmin):
     list_display = ("from_user", "to_user", "is_confirmed", "created")
     search_fields = ("from_user__username", "to_user__username")
     list_filter = ("is_confirmed", "created")
+    actions = ["confirm_connections"]
+
+    @admin.action(description="Confirm selected connections")
+    def confirm_connections(self, request, queryset):
+        queryset.update(is_confirmed=True)
 
 
 admin.site.register(CustomUser, CustomUserAdmin)
