@@ -10,7 +10,6 @@ class LastActivityMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
 
-        # Обновляем активность пользователя, если он аутентифицирован
         if request.user.is_authenticated:
             update_last_activity.delay(request.user.id)
 

@@ -56,7 +56,7 @@ class VerifyTokenView(APIView):
 
 
 class LoginView(APIView):
-    """Вью для авторизации пользователя"""
+    """Представление для авторизации пользователя"""
 
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
@@ -77,7 +77,7 @@ class LoginView(APIView):
 
 
 class LogoutView(APIView):
-    """Вью для выхода пользователя"""
+    """Представление для выхода пользователя"""
 
     permission_classes = [permissions.IsAuthenticated]
 
@@ -140,7 +140,7 @@ class ConfirmEmailView(APIView):
         if user is not None and default_token_generator.check_token(
             user, token
         ):
-            user.is_active = True  # Активируем пользователя
+            user.is_active = True
             user.save()
             return Response(
                 {"message": "Email успешно подтвержден!"},
@@ -204,7 +204,7 @@ class ProfileDetailView(generics.RetrieveAPIView):
             if not user:
                 raise serializers.ValidationError({"detail": "User not found"})
             profile = user.profile
-            cache.set(cache_key, profile, timeout=300)  # кэшируем на 5 минут
+            cache.set(cache_key, profile, timeout=300)
 
         profile.update_online_status()
         return profile
@@ -315,6 +315,6 @@ class ContactManagementView(APIView):
             contacts = ConnectionsSerializer(
                 confirmed_connections, many=True
             ).data
-            cache.set(cache_key, contacts, timeout=300)  # кэшируем на 5 минут
+            cache.set(cache_key, contacts, timeout=300)
 
         return Response(contacts, status=status.HTTP_200_OK)

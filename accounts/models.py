@@ -7,7 +7,7 @@ from django.utils import timezone
 
 
 class CustomUser(AbstractUser):
-    """Пользовательская модель"""
+    """Модель пользователя"""
 
     email = models.EmailField(unique=True, max_length=255)
     username = models.CharField(
@@ -60,7 +60,7 @@ class Connections(models.Model):
     )
     is_confirmed = models.BooleanField(
         default=False
-    )  # Если двусторонняя связь, дружба подтверждена
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -71,4 +71,4 @@ class Connections(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.from_user.username} is connected with {self.to_user.username}"
+        return f"{self.from_user.username} connected {self.to_user.username}"

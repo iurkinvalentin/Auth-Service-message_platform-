@@ -25,7 +25,7 @@ def handle_database_error(detail_message):
 
 
 class GroupViewSet(viewsets.ViewSet):
-    """ViewSet для управления группами и участниками"""
+    """Представление для управления группами и участниками"""
 
     def list(self, request):
         """Получить список всех групп"""
@@ -163,7 +163,7 @@ class GroupViewSet(viewsets.ViewSet):
             else:
                 return Response(
                     {
-                        "detail": f"Участник с ID {member_id} не найден в группе"
+                        "detail": f"Участник с ID {member_id} не найден"
                     },
                     status=status.HTTP_404_NOT_FOUND,
                 )
@@ -243,7 +243,7 @@ class GroupViewSet(viewsets.ViewSet):
 
 
 class InvitationViewSet(viewsets.ViewSet):
-    """ViewSet для управления приглашениями в группу"""
+    """Представление для управления приглашениями в группу"""
 
     def create(self, request):
         """Отправка приглашения в группу"""
@@ -261,7 +261,7 @@ class InvitationViewSet(viewsets.ViewSet):
         ).exists():
             return Response(
                 {
-                    "detail": "У вас нет прав приглашать пользователей в эту группу"
+                    "detail": "У вас нет прав приглашать пользователей"
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -326,7 +326,7 @@ class InvitationViewSet(viewsets.ViewSet):
         if invitation.is_accepted:
             return Response(
                 {
-                    "detail": "Это приглашение уже принято, его нельзя отклонить"
+                    "detail": "Это приглашение уже принято"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

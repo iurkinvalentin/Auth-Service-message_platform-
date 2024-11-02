@@ -46,4 +46,8 @@ class GroupInvitation(models.Model):
     is_accepted = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Invitation to {self.group.name} by {self.invited_by.user.username} to {self.invited_to.user.username}"
+        return (
+            f"Invitation to {self.group.name} by "
+            f"{self.invited_by.user.username} to "
+            f"{self.invited_to.user.username}"
+        )

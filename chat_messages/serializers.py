@@ -34,24 +34,22 @@ class MessageSerializer(serializers.ModelSerializer):
 
         if chat_type == "group":
             try:
-                # Обернули доступ к базе данных в sync_to_async
                 attrs["group_chat"] = await sync_to_async(
                     GroupChat.objects.get
                 )(id=chat_id)
                 attrs["private_chat"] = (
-                    None  # Убедитесь, что поле private_chat пустое
+                    None
                 )
             except GroupChat.DoesNotExist:
                 raise serializers.ValidationError("Group chat does not exist.")
 
         elif chat_type == "private":
             try:
-                # Обернули доступ к базе данных в sync_to_async
                 attrs["private_chat"] = await sync_to_async(
                     PrivateChat.objects.get
                 )(id=chat_id)
                 attrs["group_chat"] = (
-                    None  # Убедитесь, что поле group_chat пустое
+                    None
                 )
             except PrivateChat.DoesNotExist:
                 raise serializers.ValidationError(
@@ -64,22 +62,20 @@ class MessageSerializer(serializers.ModelSerializer):
         return attrs
 
     async def create(self, validated_data):
-        # Удаляем временные поля 'chat_type' и 'chat_id' перед сохранением
         validated_data.pop("chat_type")
         validated_data.pop("chat_id")
 
-        # Создаем сообщение с правильной связью (либо group_chat, либо private_chat)
         return await sync_to_async(Message.objects.create)(**validated_data)
 
 
 class ChatParticipantSerializer(serializers.ModelSerializer):
     user = serializers.CharField(
         source="user.username"
-    )  # Отображаем имя пользователя
+    )
 
     class Meta:
         model = ChatParticipant
-        fields = ["id", "user", "role"]  # Включаем роль участника
+        fields = ["id", "user", "role"]
 
 
 class GroupChatSerializer(serializers.ModelSerializer):
@@ -90,29 +86,23 @@ class GroupChatSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "participants", "created_at"]
 
     def create(self, validated_data):
-        # Извлекаем список участников из данных
         participants_data = validated_data.pop("participants", [])
 
-        # Создаем сам чат
         chat = GroupChat.objects.create(**validated_data)
 
-        # Добавляем участников в ChatParticipant
         for user in participants_data:
             ChatParticipant.objects.create(chat=chat, user=user)
 
         return chat
 
     def update(self, instance, validated_data):
-        # Извлекаем список участников
         participants_data = validated_data.pop("participants", None)
 
-        # Обновляем сам чат
         instance.name = validated_data.get("name", instance.name)
         instance.save()
 
-        # Если список участников был передан, обновляем участников
         if participants_data is not None:
-            instance.participants.clear()  # Очистим текущих участников
+            instance.participants.clear()
             for user in participants_data:
                 ChatParticipant.objects.create(chat=instance, user=user)
 

@@ -8,6 +8,8 @@ from .models import Connections, CustomUser, Profile
 
 
 class LoginSerializer(serializers.Serializer):
+    """Сериализатор для логирования пользователя"""
+
     username = serializers.CharField(required=True)
     password = serializers.CharField(
         write_only=True, required=True, style={"input_type": "password"}
@@ -79,6 +81,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Сериализатор пользователя"""
 
     class Meta:
         model = CustomUser
@@ -86,6 +89,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """Сериализатор редактирования профиля"""
+
     user = UserSerializer()
 
     class Meta:
@@ -122,6 +127,8 @@ class CustomUserProfileSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    """Сериализатор профиля пользователя"""
+
     user = CustomUserProfileSerializer()
 
     class Meta:
@@ -139,6 +146,8 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 class ConnectionsSerializer(serializers.ModelSerializer):
+    """Сериализатор связей"""
+
     class Meta:
         model = Connections
         fields = "__all__"

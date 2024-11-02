@@ -36,7 +36,7 @@ def update_chat_cache(chat):
 
 
 def add_participant(chat, user_id, role="member"):
-    """Добавление участника в чат с проверкой на существование и инвалидацией кэша"""
+    """Добавление участника в чат"""
     try:
         user = CustomUser.objects.get(id=user_id)
         if ChatParticipant.objects.filter(chat=chat, user=user).exists():
@@ -89,7 +89,7 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             if chat_participant_ids == participants_ids:
                 return Response(
                     {
-                        "detail": "A chat with the same participants already exists."
+                        "detail": "Чат с такими участниками уже существует"
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
@@ -123,19 +123,19 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             participant_ids = chat.participants.values_list(
                 "user_id", flat=True
             )
-            chat.participants.all().delete()  # Удаление всех участников
-            chat.messages.all().delete()  # Удаление всех сообщений
+            chat.participants.all().delete()
+            chat.messages.all().delete()
             chat.delete()
 
             for user_id in participant_ids:
                 cache.delete(
                     f"user_chats_{user_id}"
-                )  # Инвалидация кэша списка чатов пользователя при удалении чата
+                )
 
-            cache.delete(f"chat_{chat.id}")  # Инвалидация кэша самого чата
+            cache.delete(f"chat_{chat.id}")
             cache.delete(
                 f"chat_participants_{chat.id}"
-            )  # Инвалидация кэша участников чата при удалении чата
+            )
             return Response(
                 {"detail": "Chat deleted successfully"},
                 status=status.HTTP_204_NO_CONTENT,
@@ -189,7 +189,7 @@ class GroupChatViewSet(viewsets.ModelViewSet):
         ).exists():
             return Response(
                 {
-                    "detail": "You do not have permission to add participants to this chat."
+                    "detail": "У вас нет прав добавлять учасника в чат."
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -220,7 +220,7 @@ class GroupChatViewSet(viewsets.ModelViewSet):
         ).exists():
             return Response(
                 {
-                    "detail": "You do not have permission to remove participants from this chat."
+                    "detail": "У вас нет прав удалять участника из чата."
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -239,11 +239,11 @@ class GroupChatViewSet(viewsets.ModelViewSet):
             participant.delete()
             cache.delete(
                 f"user_chats_{user_id}"
-            )  # Инвалидация кэша списка чатов пользователя при удалении участника
+            )
             cache.delete(
                 f"chat_participants_{chat.id}"
-            )  # Инвалидация кэша участников чата при удалении участника
-            update_chat_cache(chat)  # Обновление кэша чата
+            )
+            update_chat_cache(chat)
             return Response(
                 {"detail": "Participant successfully removed from chat."},
                 status=status.HTTP_200_OK,
@@ -277,7 +277,7 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
         ):
             return Response(
                 {
-                    "detail": "A private chat between these participants already exists."
+                    "detail": "Чат между участниками уже существует."
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -291,13 +291,13 @@ class PrivateChatViewSet(viewsets.ModelViewSet):
         except DatabaseError:
             return Response(
                 {
-                    "detail": "Database error occurred while creating private chat."
+                    "detail": "Ошибка быза данных."
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def destroy(self, request, *args, **kwargs):
-        """Удаление приватного чата вместе с его сообщениями и принудительная инвалидация кэша участников"""
+        """Удаление приватного чата"""
         chat = self.get_object()
         try:
             chat.messages.all().delete()  # Удаление всех сообщений

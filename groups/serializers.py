@@ -31,7 +31,7 @@ class GroupSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        """Создание группы и добавление владельца как участника с ролью 'owner'"""
+        """Создание группы"""
         group = Group.objects.create(**validated_data)
         GroupMembership.objects.create(
             group=group,

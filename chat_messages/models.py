@@ -43,7 +43,8 @@ class PrivateChat(models.Model):
         )  # Обеспечивает уникальность чата между двумя пользователями
 
     def __str__(self):
-        return f"Private Chat between {self.user1.username} and {self.user2.username}"
+        return (f"Private Chat between {self.user1.username}"
+                f"and {self.user2.username}")
 
 
 class Message(models.Model):
@@ -70,10 +71,13 @@ class Message(models.Model):
     )
 
     def __str__(self):
-        return f"Message from {self.sender} in {'Private Chat' if self.private_chat else 'Group Chat'}"
+        return (f"Message from {self.sender} in"
+                f"{'Private Chat' if self.private_chat else 'Group Chat'}")
 
 
 class ChatParticipant(models.Model):
+    """Модель участника чата"""
+
     ROLE_CHOICES = [
         ("admin", "Admin"),
         ("member", "Member"),
