@@ -9,8 +9,9 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 
 import notifications.routing
 from chat_messages.middleware import JWTAuthMiddleware
-from chat_messages.routing import \
-    websocket_urlpatterns as chat_websocket_urlpatterns
+from chat_messages.routing import (
+    websocket_urlpatterns as chat_websocket_urlpatterns,
+)
 
 application = ProtocolTypeRouter(
     {

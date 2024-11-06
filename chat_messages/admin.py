@@ -1,49 +1,77 @@
-from django.contrib import admin
-
-from .models import ChatParticipant, GroupChat, Message, PrivateChat
-
-
-class GroupChatAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "group", "created_at")
-    search_fields = ("name", "group__name")
-    list_filter = ("created_at",)
-    ordering = ("id",)
-
-    def get_participant_count(self, obj):
-        return obj.participants.count()
-
-    get_participant_count.short_description = "Participant Count"
+from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
-class PrivateChatAdmin(admin.ModelAdmin):
-    list_display = ("id", "user1", "user2", "created_at")
-    search_fields = ("user1__username", "user2__username")
-    list_filter = ("created_at",)
-    ordering = ("created_at",)
+class GroupChat(models.Model):
+    name = models.CharField(_("Название чата"), max_length=100)
+    group = models.ForeignKey(
+        "Group", verbose_name=_("Группа"), on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(_("Дата создания"), auto_now_add=True)
 
-    def __str__(self):
-        return f"Private chat between {self.user1} and {self.user2}"
-
-
-class MessageAdmin(admin.ModelAdmin):
-    list_display = ("id", "sender", "content", "created_at", "chat_type")
-    search_fields = ("sender__username", "content")
-    list_filter = ("created_at",)
-
-    def chat_type(self, obj):
-        return "Group" if obj.group_chat else "Private"
-
-    chat_type.short_description = "Chat Type"
+    class Meta:
+        verbose_name = _("Групповой чат")
+        verbose_name_plural = _("Групповые чаты")
 
 
-class ChatParticipantAdmin(admin.ModelAdmin):
-    list_display = ("id", "chat", "user", "role", "joined_at")
-    search_fields = ("user__username", "chat__name")
-    list_filter = ("role", "joined_at")
-    ordering = ("chat", "user")
+class PrivateChat(models.Model):
+    user1 = models.ForeignKey(
+        "User",
+        verbose_name=_("Пользователь 1"),
+        on_delete=models.CASCADE,
+        related_name="private_chats_user1",
+    )
+    user2 = models.ForeignKey(
+        "User",
+        verbose_name=_("Пользователь 2"),
+        on_delete=models.CASCADE,
+        related_name="private_chats_user2",
+    )
+    created_at = models.DateTimeField(_("Дата создания"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Приватный чат")
+        verbose_name_plural = _("Приватные чаты")
 
 
-admin.site.register(GroupChat, GroupChatAdmin)
-admin.site.register(PrivateChat, PrivateChatAdmin)
-admin.site.register(Message, MessageAdmin)
-admin.site.register(ChatParticipant, ChatParticipantAdmin)
+class Message(models.Model):
+    sender = models.ForeignKey(
+        "User", verbose_name=_("Отправитель"), on_delete=models.CASCADE
+    )
+    content = models.TextField(_("Сообщение"))
+    created_at = models.DateTimeField(_("Дата отправки"), auto_now_add=True)
+    group_chat = models.ForeignKey(
+        GroupChat,
+        verbose_name=_("Групповой чат"),
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    private_chat = models.ForeignKey(
+        PrivateChat,
+        verbose_name=_("Приватный чат"),
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = _("Сообщение")
+        verbose_name_plural = _("Сообщения")
+
+
+class ChatParticipant(models.Model):
+    chat = models.ForeignKey(
+        GroupChat, verbose_name=_("Чат"), on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        "User", verbose_name=_("Пользователь"), on_delete=models.CASCADE
+    )
+    role = models.CharField(_("Роль"), max_length=50)
+    joined_at = models.DateTimeField(
+        _("Дата присоединения"), auto_now_add=True
+    )
+
+    class Meta:
+        verbose_name = _("Участник чата")
+        verbose_name_plural = _("Участники чатов")

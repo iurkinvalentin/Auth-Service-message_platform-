@@ -7,8 +7,11 @@ from rest_framework.response import Response
 from accounts.models import CustomUser
 
 from .models import ChatParticipant, GroupChat, Message, PrivateChat
-from .serializers import (GroupChatSerializer, MessageSerializer,
-                          PrivateChatSerializer)
+from .serializers import (
+    GroupChatSerializer,
+    MessageSerializer,
+    PrivateChatSerializer,
+)
 
 CACHE_TIMEOUT = 30
 
