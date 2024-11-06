@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
 from .models import Notification
 
@@ -14,9 +15,11 @@ class NotificationAdmin(admin.ModelAdmin):
             obj.message[:30] + "..." if len(obj.message) > 30 else obj.message
         )
 
-    message_preview.short_description = "Message Preview"
+    message_preview.short_description = _("Предварительный просмотр сообщения")
 
-    @admin.action(description="Mark selected notifications as read")
+    @admin.action(
+        description=_("Отметить выбранные уведомления как прочитанные")
+    )
     def mark_as_read(self, request, queryset):
         queryset.update(is_read=True)
 

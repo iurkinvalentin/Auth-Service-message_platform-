@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.translation import gettext_lazy as _
 
 from .models import Group, GroupInvitation, GroupMembership
 
@@ -12,7 +13,7 @@ class GroupAdmin(admin.ModelAdmin):
     def get_members_count(self, obj):
         return obj.groupmembership_set.count()
 
-    get_members_count.short_description = "Members Count"
+    get_members_count.short_description = _("Количество участников")
 
 
 class GroupMembershipAdmin(admin.ModelAdmin):
@@ -39,6 +40,7 @@ class GroupInvitationAdmin(admin.ModelAdmin):
     ordering = ("group", "created_at")
 
 
+# Регистрация моделей в админке
 admin.site.register(Group, GroupAdmin)
 admin.site.register(GroupMembership, GroupMembershipAdmin)
 admin.site.register(GroupInvitation, GroupInvitationAdmin)
