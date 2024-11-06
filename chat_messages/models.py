@@ -52,8 +52,10 @@ class PrivateChat(models.Model):
         verbose_name_plural = _("Приватные чаты")
 
     def __str__(self):
-        return (f"Private Chat between"
-                f"{self.user1.username} and {self.user2.username}")
+        return (
+            f"Private Chat between"
+            f"{self.user1.username} and {self.user2.username}"
+        )
 
 
 class Message(models.Model):
@@ -83,8 +85,10 @@ class Message(models.Model):
     )
 
     def __str__(self):
-        return (f"Message from {self.sender} in"
-                f"{'Private Chat' if self.private_chat else 'Group Chat'}")
+        return (
+            f"Message from {self.sender} in"
+            f"{'Private Chat' if self.private_chat else 'Group Chat'}"
+        )
 
     class Meta:
         verbose_name = _("Сообщение")
