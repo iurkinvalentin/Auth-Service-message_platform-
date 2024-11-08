@@ -25,33 +25,33 @@ class VerifyTokenView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request, *args, **kwargs):
-        token = request.data.get("token")
+        token = request.data.get('token')
         if not token:
             return Response(
-                {"detail": "Token is required."},
+                {'detail': 'Token is required.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
             access_token = AccessToken(token)
-            user_id = access_token["user_id"]
+            user_id = access_token['user_id']
             user = CustomUser.objects.get(id=user_id)
             return Response(
                 {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
                 },
                 status=status.HTTP_200_OK,
             )
         except AccessToken.Error:
             return Response(
-                {"detail": "Token is invalid or expired."},
+                {'detail': 'Token is invalid or expired.'},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
         except CustomUser.DoesNotExist:
             return Response(
-                {"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND
+                {'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND
             )
 
 
@@ -64,13 +64,13 @@ class LoginView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
+        user = serializer.validated_data['user']
         refresh = RefreshToken.for_user(user)
 
         return Response(
             {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
             },
             status=status.HTTP_200_OK,
         )
@@ -82,10 +82,10 @@ class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        refresh_token = request.data.get("refresh_token")
+        refresh_token = request.data.get('refresh_token')
         if not refresh_token:
             return Response(
-                {"detail": "Refresh token is required."},
+                {'detail': 'Refresh token is required.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -94,7 +94,7 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response(
-                {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                {'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST
             )
 
 
@@ -109,7 +109,7 @@ class RegisterView(generics.CreateAPIView):
             serializer.save()
         except IntegrityError:
             return Response(
-                {"detail": "User with this email or username already exists."},
+                {'detail': 'User with this email or username already exists.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -119,10 +119,10 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
 
         refresh = RefreshToken.for_user(user)
-        tokens = {"refresh": str(refresh), "access": str(refresh.access_token)}
+        tokens = {'refresh': str(refresh), 'access': str(refresh.access_token)}
 
         return Response(
-            {"user": RegisterSerializer(user).data, "tokens": tokens},
+            {'user': RegisterSerializer(user).data, 'tokens': tokens},
             status=status.HTTP_201_CREATED,
         )
 
@@ -143,12 +143,12 @@ class ConfirmEmailView(APIView):
             user.is_active = True
             user.save()
             return Response(
-                {"message": "Email успешно подтвержден!"},
+                {'message': 'Email успешно подтвержден!'},
                 status=status.HTTP_200_OK,
             )
         else:
             return Response(
-                {"message": "Недействительная ссылка для подтверждения."},
+                {'message': 'Недействительная ссылка для подтверждения.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -162,12 +162,12 @@ class DeleteView(APIView):
         try:
             request.user.delete()
             return Response(
-                {"message": "User deleted successfully."},
+                {'message': 'User deleted successfully.'},
                 status=status.HTTP_204_NO_CONTENT,
             )
         except DatabaseError:
             return Response(
-                {"detail": "An error occurred while deleting the user."},
+                {'detail': 'An error occurred while deleting the user.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -183,7 +183,7 @@ class ProfileUpdateView(generics.RetrieveUpdateAPIView):
             return self.request.user.profile
         except Profile.DoesNotExist:
             return Response(
-                {"detail": "Profile not found."},
+                {'detail': 'Profile not found.'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -195,14 +195,14 @@ class ProfileDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        user_id = self.kwargs.get("pk", self.request.user.id)
-        cache_key = f"profile_{user_id}"
+        user_id = self.kwargs.get('pk', self.request.user.id)
+        cache_key = f'profile_{user_id}'
         profile = cache.get(cache_key)
 
         if not profile:
             user = CustomUser.objects.filter(id=user_id).first()
             if not user:
-                raise serializers.ValidationError({"detail": "User not found"})
+                raise serializers.ValidationError({'detail': 'User not found'})
             profile = user.profile
             cache.set(cache_key, profile, timeout=300)
 
@@ -216,10 +216,10 @@ class ContactManagementView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        to_user_id = request.data.get("to_user_id")
+        to_user_id = request.data.get('to_user_id')
         if not to_user_id:
             return Response(
-                {"detail": "User ID is required."},
+                {'detail': 'User ID is required.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -229,7 +229,7 @@ class ContactManagementView(APIView):
                 from_user=request.user, to_user=to_user
             ).exists():
                 return Response(
-                    {"detail": "Request already sent"},
+                    {'detail': 'Request already sent'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -242,19 +242,19 @@ class ContactManagementView(APIView):
             )
         except CustomUser.DoesNotExist:
             return Response(
-                {"detail": "User not found"}, status=status.HTTP_404_NOT_FOUND
+                {'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND
             )
         except IntegrityError:
             return Response(
-                {"detail": "Error creating connection request."},
+                {'detail': 'Error creating connection request.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def patch(self, request, *args, **kwargs):
-        connection_id = kwargs.get("pk")
+        connection_id = kwargs.get('pk')
         if not connection_id:
             return Response(
-                {"detail": "Connection ID is required."},
+                {'detail': 'Connection ID is required.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -270,15 +270,15 @@ class ContactManagementView(APIView):
             )
         except Connections.DoesNotExist:
             return Response(
-                {"detail": "Request not found or already confirmed"},
+                {'detail': 'Request not found or already confirmed'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
     def delete(self, request, *args, **kwargs):
-        connection_id = kwargs.get("pk")
+        connection_id = kwargs.get('pk')
         if not connection_id:
             return Response(
-                {"detail": "Connection ID is required."},
+                {'detail': 'Connection ID is required.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -289,22 +289,22 @@ class ContactManagementView(APIView):
                 and request.user != connection.from_user
             ):
                 return Response(
-                    {"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN
+                    {'detail': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN
                 )
             connection.delete()
             return Response(
-                {"detail": "Connection removed"},
+                {'detail': 'Connection removed'},
                 status=status.HTTP_204_NO_CONTENT,
             )
         except Connections.DoesNotExist:
             return Response(
-                {"detail": "Connection not found"},
+                {'detail': 'Connection not found'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
     def get(self, request, *args, **kwargs):
         user_id = request.user.id
-        cache_key = f"confirmed_contacts_{user_id}"
+        cache_key = f'confirmed_contacts_{user_id}'
         contacts = cache.get(cache_key)
 
         if not contacts:

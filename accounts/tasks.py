@@ -20,6 +20,7 @@ def update_last_activity(user_id):
 @shared_task
 def send_confirmation_email(user_email, confirmation_link):
     """Задача для отправки email с подтверждением регистрации."""
-    subject = "Подтверждение регистрации"
-    message = f"Спасибо за регистрацию! Пожалуйста, подтвердите ваш email, перейдя по ссылке: {confirmation_link}"
+    subject = 'Подтверждение регистрации'
+    message = (f'Спасибо за регистрацию! Пожалуйста, подтвердите ваш email, '
+               f'перейдя по ссылке: {confirmation_link}')
     send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user_email])

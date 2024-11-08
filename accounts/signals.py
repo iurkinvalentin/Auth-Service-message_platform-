@@ -19,14 +19,14 @@ def save_user_profile(sender, instance, **kwargs):
 # Очистка кэша после сохранения профиля
 @receiver(post_save, sender=Profile)
 def clear_profile_cache(sender, instance, **kwargs):
-    cache_key = f"profile_{instance.user.id}"
+    cache_key = f'profile_{instance.user.id}'
     cache.delete(cache_key)
 
 
 # Очистка кэша после удаления профиля
 @receiver(post_delete, sender=Profile)
 def clear_deleted_profile_cache(sender, instance, **kwargs):
-    cache_key = f"profile_{instance.user.id}"
+    cache_key = f'profile_{instance.user.id}'
     cache.delete(cache_key)
 
 
@@ -35,5 +35,5 @@ def clear_deleted_profile_cache(sender, instance, **kwargs):
 def clear_connections_cache(sender, instance, **kwargs):
     # Очистка кэша для пользователей обеих сторон связи
     for user in [instance.from_user, instance.to_user]:
-        cache_key = f"confirmed_contacts_{user.id}"
+        cache_key = f'confirmed_contacts_{user.id}'
         cache.delete(cache_key)
