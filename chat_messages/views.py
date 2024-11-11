@@ -346,7 +346,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
 
     def perform_create(self, serializer):
-        chat_type = self.request.data.get("chat_type")  # "group" или "private"
+        chat_type = self.request.data.get("chat_type")  # 'group' или 'private'
         chat_id = self.request.data.get("chat_id")
 
         if chat_type == "group":

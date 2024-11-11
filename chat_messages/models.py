@@ -85,10 +85,8 @@ class Message(models.Model):
     )
 
     def __str__(self):
-        return (
-            f"Message from {self.sender} in"
-            f"{'Private Chat' if self.private_chat else 'Group Chat'}"
-        )
+        chat_type = "Private Chat" if self.private_chat else "Group Chat"
+        return f"Message from {self.sender} in {chat_type}"
 
     class Meta:
         verbose_name = _("Сообщение")
